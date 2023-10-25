@@ -1,11 +1,13 @@
 import logging
 import asyncio
+import datetime
 # from datetime import datatime
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters.command import Command, CommandObject
 from aiogram.types import FSInputFile
 from random import randint
+from aiogram.types import ChatPermissions
 
 TELEGRAM_TOKEN ="6387811620:AAHs1af4nDG65dJ6rNnCpk6-fFacQJia5mA"
 GROUP_ID = '-1001674247269'
@@ -34,7 +36,9 @@ async def cmd_start(message: types.Message):
 async def get_random(message: types.Message, command: CommandObject):
     # разбиваем аргументы команды символом "-"
     a, b = [int(n) for n in command.args.split('-')]
+    # в личку
     # rnum = randint(1, 6)
+    # в группу
     # await message.reply(f'Случайно число цполучилась: \t{rnum}')
 
     rnum = randint(a, b)
@@ -48,17 +52,17 @@ async def upload_photo(message: types.Message):
 
 @dp.message(Command('mygroup'))
 async def cmd_to_group(message: types.Message, bot: Bot):
-    await bot.send_message(GROUP_ID, 'hello from Habib')
+    await bot.send_message(message.chat.id, 'hello from Habib')
 
 # команда забанить пользователя
 @dp.message(Command('ban'))
 async def cmd_ban(message: types.Message):
-    user_status = await bot.get_chat_member(chat_id= GROUP_ID, user_id=message.from_user.id)
+    user_status = await bot.get_chat_member(chat_id= message.chat.id, user_id=message.from_user.id)
     # если в обьекте user_status есть флаг ChatMemberOwner или ChatMemberAdministrator
     if isinstance(user_status, types.chat_member_owner.ChatMemberOwner) or isinstance(user_status, types.chat_member_administrator.ChatMemberAdministrator):
         print('\n\n admin -good\n\n')
     else:
-        await message.reply_to_message.reply (f' <b>{message.from_user.username} </b>  это не для тебя команда', parse_mode='html')          
+        await message.reply(f' <b>{message.from_user.username} </b>  это не для тебя команда', parse_mode='html')          
         return
 
     #если команды без цитаты 
@@ -66,10 +70,21 @@ async def cmd_ban(message: types.Message):
         await message.reply("Пиши команду бан в ответ на собщение")
         return
     bans = message.reply_to_message.from_user.first_name
-    await message.bot.delete_message(chat_id=GROUP_ID, message_id=message.message_id)
-    await message.bot.ban_chat_member(chat_id=GROUP_ID, user_id=message.reply_to_message.from_user.id)
+    await message.bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
+    await message.bot.ban_chat_member(chat_id=message.chat.id, user_id=message.reply_to_message.from_user.id)
     await message.reply_to_message.reply (f'Пользователь <b>{bans} </b> забанен', parse_mode='html')   
 
+@dp.message(Command(commands=['mute', 'mt']))
+async def echo(message: types.Message, command: CommandObject, bot: Bot):
+    adminNAME = message.from_user.first_name
+    usrID = message.reply_to_message.from_user.id
+    usrNAME = message.reply_to_message.from_user.first_name
+    # kakdolga = 3
+    long, kakdolga = [n for n in command.args.split('-')]
+    kakdolga = int(kakdolga)
+    vremiaMuta = datetime.datetime.now() + datetime.timedelta(hours = kakdolga)
+    await message.bot.restrict_chat_member(chat_id=message.chat.id, user_id=usrID, permissions=ChatPermissions(can_send_messages=+False), until_date=vremiaMuta)
+    await message.reply(f'{adminNAME} замутил {usrNAME} на {kakdolga} часов!!!')
     
 # ping pong 
 @dp.message()
